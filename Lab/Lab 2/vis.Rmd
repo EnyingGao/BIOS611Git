@@ -1,0 +1,46 @@
+---
+title: "Visualization"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+library(plotly)
+library(reshape2)
+
+data <- read.csv(file = "fevRaw.csv")
+data2 <- read.csv(file = "fev.csv")
+data2$id <- factor(data2$id)
+data$id <- factor(data$id)
+data.long <- melt(data2,id.vars = c("id", "age"), measure.vars = c("ht","logfev1"))
+```
+
+## Including plot from plotly in Rmd
+
+```{r, echo=TRUE }
+p2 <- plot_ly(data.long, x = ~value, color = ~variable, type = "box")
+p2
+```
+
+## 3D plot
+Just noise
+```{r}
+m <- matrix(rnorm(50*50), 50, 50)
+p4 <- plot_ly(x = 1:50, y=1:50, z = m) %>% add_surface()
+p4
+```
+
+
+
+## Make this plot
+Density of two dimensional Gaussian distribution
+```{r echo=FALSE}
+x.norm = seq(-2,2,by = 0.05)
+y.norm = seq(-2,2,by = 0.05)
+m <- matrix(dnorm(x.norm)%*%t(dnorm(y.norm)), length(x.norm), length(y.norm))
+p5 <- plot_ly(x = x.norm, y = y.norm, z = m) %>% add_surface()
+p5
+```
+
+

@@ -1,0 +1,70 @@
+Mkdir lab5
+Ls
+# copy code folder to vcl
+Scp -r code enying@url:~/
+# copy to home?
+# put password
+Scp data.tar.gz enying@url:~/lab5/
+# put the file into lab5 folder
+
+Cd lab5/
+Ls
+
+Cd code
+Ls
+# go back o home directory
+Mv ./code/* ./lab5/
+# code file, * all of them
+
+Tar -xf data.tar.gz
+# unzip the folder
+Ls
+
+Rm data.tar.gz
+# remove the zip file
+
+Rm -r foldername
+# optional
+
+Cd data
+
+Ls | wc -l
+# wc word count, -l line
+# count number of files, it is listed as lines, so count lines
+
+Head -n 20 demographic_data.csv
+# take a look at the dataset
+
+Cd ..
+# go back
+
+Vim Makefile
+# text editor
+# w skip a word, j, k means up and down
+# press I if you want to edit
+# press escape to quit
+: Enter
+: q + Enter
+# out of the text editor
+
+Vim Makefile
+
+# make the Makefile excitable
+Chmod +x Makefile
+# check
+Ls -l
+# see if there’s -x
+
+Make data_cleaned.csv
+
+#Make space double tab shows you the targets in the makefile
+
+Make model1.RData
+# now run r script is ruined
+
+Make model1.RData
+# tells it to update the file, you will see it’s already put to date.
+
+# vcl to local
+Use this code in local bash
+Scp enying@url:path_to_file path_to_target

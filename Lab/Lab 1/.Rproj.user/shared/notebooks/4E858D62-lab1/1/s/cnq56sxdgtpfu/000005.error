@@ -1,0 +1,1 @@
+{"frames":[{"character_number":0,"end_character_number":0,"end_line_number":0,"file":"","func":"plot(lm.object, which = 1)","line_number":0}],"message":"Error in plot(lm.object, which = 1) : object 'lm.object' not found\n"}

@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1535398665196.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2572864807",
+    "id" : "B3F763B8",
+    "lastKnownWriteTime" : 1535401417,
+    "last_content_update" : 1535401417378,
+    "path" : "~/School/BIOS 611/Lab/HW1.Rmd",
+    "project_path" : null,
+    "properties" : {
+        "cursorPosition" : "169,35",
+        "scrollLine" : "148",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_markdown"
+}

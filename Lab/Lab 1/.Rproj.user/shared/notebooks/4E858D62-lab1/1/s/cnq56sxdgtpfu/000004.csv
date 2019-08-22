@@ -1,0 +1,3 @@
+"0","plot(lm.object, which = 1)"
+"2","Error in plot(lm.object, which = 1) : object 'lm.object' not found
+"

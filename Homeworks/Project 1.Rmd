@@ -1,0 +1,187 @@
+---
+title: "Project 1"
+author: "Enying Gao"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+```{r, include = F}
+library(tidyverse)
+```
+
+## Data #1: USRegionalMortality
+
+### Read Data
+
+```{r}
+library(lattice)
+data("USRegionalMortality")
+```
+
+### Figure
+
+```{r, fig.width = 8, fig.height = 10, warning = FALSE}
+USRegionalMortality %>% 
+  ggplot(., aes(x = reorder(Cause, Rate, FUN = mean), y = Rate, color = Sex)) +
+  geom_boxplot() +
+  coord_flip() +
+  facet_wrap(~Status, nrow = 2) +
+  ylab('Death rate per 100,000 population') +
+  xlab('Cuase of death') +
+  theme(legend.position = 'top') +
+  theme_bw()
+
+# Rank of mortality rate by disease
+USRegionalMortality %>% 
+  group_by(Cause) %>% 
+  summarise(average = mean(Rate, na.rm = TRUE)) %>% 
+  arrange(desc(average))
+
+# Rank of motality rate in heart disease and cancer by region
+USRegionalMortality %>% 
+  filter(Cause %in% c('Heart disease', 'Cancer')) %>% 
+  group_by(Region) %>% 
+  arrange(desc(Rate))
+```
+
+### Results
+
+This figure was derived from the "USMortality" data set in R package "lattice". It is a data frame with 400 observations on rate of death causing by various disease in 10 regions of the United States. As the boxplot shown, males tend to have higher death rate than females do, and people who live in rural area tend to have higher death rate than those who live in urban area. It is also noted that *Heart Disease* and *Cancer* are the most frequent causes of death in United States with mean of 177 deaths and 172 deaths per 100,000 population respectively, tripling the death rate of other diseases. In terms of region, HHS Region 04 which contains states Alabama, Florida, Georgia, Kentucky, Mississippi, North Carolina, South Carolina and Tennessee ranked first in death rate of both *Heart Disease* and *Cancer*.
+
+As a next step, it would be interesting to look at why HHS Region 04 has higher mortality rate in *Heart Disease* and *Cancer* than other regions. By finding factors that influence people's health, we would be able to improve the wellbeing of the society.
+
+## Data #2: txhousing
+
+### Read Data
+
+```{r}
+library(ggplot2)
+data("txhousing")
+```
+
+### Figure
+```{r, fig.width = 8, warning = FALSE}
+# Top 3 cities that have the largest total value of sales during period of 2000 to 2015
+txhousing %>% 
+  group_by(city) %>% 
+  summarise(total = sum(volume, na.rm = TRUE)) %>%
+  filter(rank(desc(total)) <= 3)
+
+newtxhousing <- 
+  txhousing %>% 
+  group_by(city) %>% 
+  filter(city %in% c('Austin', 'Dallas', 'Houston'))
+
+ggplot() +
+  geom_line(data = txhousing, aes(x = date, y = median, group = city), color = 'grey') +
+  geom_line(data = newtxhousing, aes(x = date, y = median, color = city)) +
+  geom_smooth(data = txhousing, aes(x = year, y = median, color = 'purple')) + 
+  scale_color_discrete(name = "City", breaks=c('Austin', 'Dallas', 'Houston', 'purple'),
+                       labels=c('Austin', 'Dallas', 'Houston', 'Average Sale Price')) +
+  xlab('Year') +
+  ylab('Median sale price') +
+  theme_bw()
+  
+# Top months in terms of yearly number of sales 
+txhousing %>% 
+  group_by(year, month) %>% 
+  summarise(totalsales_month = sum(sales, na.rm = T)) %>% 
+  group_by(year) %>% 
+  mutate(totalsales_year = sum(totalsales_month),
+         percentage = totalsales_month/totalsales_year) %>% 
+  filter(rank(desc(percentage)) <= 3) %>% 
+  group_by(month) %>% 
+  summarise(count = n()) %>% 
+  arrange(desc(count))
+```
+
+### Result
+
+This figure was derived from the "txhousing" data set in R package "ggplot2". It is a data frame that contains monthly real estate informaton for every city in Texas from 2000 to 2015 provided by the TAMU real estate center. *Houston*, *Dallas* and *Austin* were the top 3 cities that contributed the most to the housing market during this period  in terms of total value of sales. The median sale price for these 3 cities are highlighted in the plot, all above the average. Overall, median sale price was steadily increasing each year. In terms of number of sales, June ranked to be the month that has the largest number of sales 15 times during the period of 2000 to 2015, follwing by August, May and July.
+
+As a next step, it would be helpful to know the trend in the housing market in Texas by forcasting each city's median sale price in the following years. It would also be interesting to know why most people buy a house during summer.
+
+## Data #3: Aids2
+
+### Read Data
+
+```{r, warning = F}
+library(MASS)
+data("Aids2")
+```
+
+### Figure
+```{r, fig.width = 8, warning = FALSE}
+Aids2 %>% 
+ggplot() + 
+  geom_bar(aes(x = status, fill = T.categ), position = "dodge", alpha = 0.8) +
+  facet_wrap(~ state) +
+  xlab('Status of the patients') +
+  ylab('Number of patients') +
+  theme_bw()
+
+# Survival rate in terms of states
+Aids2 %>% 
+  group_by(status, state) %>% 
+  summarise(total = n()) %>% 
+  group_by(state) %>% 
+  mutate(percentage = total/sum(total)) %>% 
+  arrange(desc(percentage)) %>% 
+  filter(status == "A")
+
+# Average life time since diagnosis
+Aids2 %>% 
+  filter(status == "D") %>% 
+  mutate(duration = death - diag) %>% 
+  summarise(mean(duration))
+```
+
+### Result
+
+This figure was derived from the "Aids2" data set in R package "MASS", which is drived from "Dr P.J. Solomon and the Australian National Centre in HIV Epidemiology and Clinical Research". It is a data frame that contains data on patients diagnosed with AIDS in Australia before 1 July 1991. From the bar chart, it can be seen that AIDS was most frequently transmitted through *hs* which stands for male homosexual or bisexual contact; and state *NSW* which includes New South Wales and Australian Capital Territory had more incidence of AIDS than other states. In terms of survival rate, state *Other* which includes Western Australia, South Australia, Tasmania and Northern territory was the highest (43%), and state *QLD* which includes Queensland was the lowest (35%). Among those deceased patients, the average life time since diagnosis was about 359 days. 
+
+As a next step, it would be beneficial to find out why incidence of AIDS through male homosexual or bisexual contact more than tripled when comparing to other transmission category such as heterosexual contact and blood. It would also be helpful to learn the cause of difference in number of incidence and in survival rate among states. 
+
+
+## Data #4: USArrests
+
+### Read Data
+
+```{r}
+library(datasets)
+data("USArrests")
+```
+
+### Figure
+
+```{r, warning = FALSE}
+# Top 3 the most dangerous states
+USArrests %>% 
+  rownames_to_column('state') %>% 
+  mutate(TotalCrimeRate = rowSums(USArrests[, c(1:2,4)])) %>% 
+  filter(rank(desc(TotalCrimeRate)) <= 3) %>% 
+  column_to_rownames('state')
+
+# Top 3 the safest states
+USArrests %>% 
+  rownames_to_column('state') %>% 
+  mutate(TotalCrimeRate = rowSums(USArrests[, c(1:2,4)])) %>% 
+  filter(rank(TotalCrimeRate) <= 3) %>% 
+  column_to_rownames('state')
+
+USArrests %>% 
+  mutate(Urban = ifelse(UrbanPop > 65, "Urban", "Rural")) %>% 
+  ggplot(aes(y = Murder, x = Assault)) +
+  geom_point(aes(size = Rape, color = Urban)) +
+  geom_smooth() +
+  annotate('text', label='Florida', x = 335, y = 16.5, color='red') +
+  annotate('text', label='North Dakota', x = 75, y = 0.8, color='dark green') +
+  xlab('Number of Assault Arrests per 100,000') +
+  ylab('Number of Murder Arrests per 100,000') +
+  theme_bw()
+  
+```
+
+This figure was derived from the "USArrests" data set in R package "datasets", which is drived from "World Almanac and Book of facts 1975". It is a data frame that contains statistics, in arrests per 100,000 residents for assault, murder and rape in each of the 50 US states in 1973. The data also includes the percent of population living in urban areas. *Florida, Maryland and North Carolina* were ranked to be the most dangerous states, while *North Dakota, Vermont and Wisconsin* were ranked to be the safest states. From the scatter plot, it is evidential that as number of assault increases number of murder also increases along with the increase in number of Rape. If we consider states having urban population higher than 65% as urban and the rest of them as rural, then there's no obvious difference in violent crime rate between urban and rural area.
+
+As a next step, it would be crucial to understand why crime rates were extremely high in certain states and relatively low in other states. It would also be helpful if the government could think of any ways to prevent the occurence of any one of murder, assault and rape as they're all associated with each other.

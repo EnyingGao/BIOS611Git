@@ -1,0 +1,379 @@
+---
+  title: "BIOS 611 HW10"
+  author: "Enying Gao"
+  date: "`r format(Sys.time(), '%m/%d/%Y')`"
+  output: html_document
+---
+
+  This homework is due at 6 pm on Monday, December 3.  
+
+  This set of exercise is largely taken from R for Data Science by Garrett Grolemund and Hadley Wickham.  
+
+```{r include=FALSE}
+  library(tidyverse)
+  library(modelr)
+```
+
+# Exercise 1
+
+1.  One downside of the linear model is that it is sensitive to unusual values
+    because the distance incorporates a squared term. Fit a linear model to 
+    the simulated data below, and visualise the results. Rerun a few times to
+    generate different simulated datasets. What do you notice about the model? 
+    
+    ```{r}
+    set.seed(1)
+    sim1a <- tibble(
+      x = rep(1:10, each = 3),
+      y = x * 1.5 + 6 + rt(length(x), df = 2)
+    )
+    ```
+
+    Answer: 
+
+    ```{r}
+sim1a_mod <- lm(y~x, data = sim1a)
+
+ggplot(sim1a, aes(x, y)) + 
+  geom_point(size = 2, colour = "grey30") + 
+  geom_abline(intercept = coef(sim1a_mod)[1], slope = coef(sim1a_mod)[2])
+    ```
+
+There's an abnormal value in the data, affecting the fitted line to lean toward that possible outlier.
+
+2.  There are multiple ways to get the MSE (mean squared error. i.e. 
+    $\sum_{i=1}^{n} \frac {(y_i - \hat{y}_i)^2}{n - p}$ where $n$ is the sample  
+    size, $p$ is the number of covariates plus 1). from an `lm` object.  
+    Illustrate three different ways of getting the MSE from the following object.  
+    
+    ```{r}
+    sim1_mod <- lm(y~x, data = modelr::sim1)
+    ```
+    
+    Hint: 1) using `predict()`,   
+          2) extracting `residual`,   
+          3) using `summary()` to get some quantity related to MSE.  
+          If you are not sure what the object contains, use `str()`.  
+
+    Answer: 
+
+    ```{r}
+sum((modelr::sim1[2]-predict(sim1_mod))^2)/(30-2)
+sum(sim1_mod$residuals^2)/(30-2)
+(summary(sim1_mod)$sigma)^2
+    ```
+
+# Exercise 2
+
+1.  Instead of using `lm()` to fit a straight line, you can use `loess()`
+    to fit a smooth curve. Repeat the process of model fitting, 
+    grid generation, predictions, and visualisation on `modelr::sim1` using 
+    `loess()` instead of `lm()`. How does the result compare to 
+    `geom_smooth()`?
+    
+    Answer: 
+
+    ```{r}
+    sim1_mod_lm <- lm(y~x, data = modelr::sim1)
+    sim1_mod_loess <- loess(y~x, data = modelr::sim1)
+    grid_lm <- modelr::sim1 %>%
+      data_grid(x) %>% 
+      add_predictions(sim1_mod_lm)
+    grid_loess <- modelr::sim1 %>%
+      data_grid(x) %>% 
+      add_predictions(sim1_mod_loess)
+    ggplot(modelr::sim1, aes(x)) +
+      geom_point(aes(y=y)) +
+      geom_line(aes(y = pred), data = grid_loess, colour = 'red', size = 1) +
+      geom_smooth(aes(y = pred), data = grid_lm, colour = 'blue', size = 1)
+    
+    ```
+
+The results are very similar.
+
+2.  What does `geom_ref_line()` do? What package does it come from?
+    Why is displaying a reference line in plots showing residuals
+    useful and important?
+    
+    Answer: 
+
+It adds a reference line to the plot. It comes from package modelr. It helps to detect patterns of residuals.
+
+3.  In high-dimensional settings, some extension to linear models have been   
+    developed to control the effect of noise variables. LASSO, ridge regression, 
+    and elastic nets are such examples. Fit usual linear model,
+    LASSO, and ridge regression using `mtcars` data: i.e. `lm(mpg ~ ., mtcars)`
+    for usual linear model. Use `glmnet::glmnet()` with
+    `alpha = 1` for LASSO and `alpha = 0` for ridge regression.  
+    To find the best amount of penalty (`lambda`), usually cross validation is 
+    done, but here, simply put `lambda = 0.6`.  
+    What is the main difference bewteen LASSO and ridge regression? (Look
+    at their coefficients using `coef()` function. Keyword: sparsity)
+    
+    Answer: 
+
+    ```{r}
+lasso <- glmnet::glmnet(as.matrix(mtcars[-1]), unlist(mtcars[1]), alpha = 1, lambda = 0.6)
+ridge <- glmnet::glmnet(as.matrix(mtcars[-1]), unlist(mtcars[1]), alpha = 0, lambda = 0.6)
+coef(lasso)
+coef(ridge)
+    ```
+
+Sparcity is higher in Lasso than in ridge regression.
+
+# Exercise 3
+
+1.  Write a model formula in `lm()` in R that represents the following formula:  
+    $E[y|x_1, x_2] = \beta_0 + \beta_1x_1 + \beta_2x_1^2 + \beta_3x_1x_2 + \beta_4e^{x_1}$.  
+    Note: Beware that there is no main effect term for $x_2$.  
+    Use the following data (`dat`).  
+    
+    ```{r}
+    set.seed(1)
+    dat <- data_frame(x1 = rnorm(30), x2 = rnorm(30), y = x1*(x1-x2) - exp(x1)/3 + rnorm(30))
+    ```
+    
+    
+    Answer:
+    
+    ```{r}
+lm(y ~ x1 + I(x2^2) + x1:x2 + exp(x1), data = dat)
+    ```
+
+2.  Suppose for some reason, you do not want to include an intercept term in your
+    linear model.  e.g. $E[y|x_1] = \beta_1x_1$.
+    
+    A. How would you remove the intercept in `lm()`? Write a code for such a model
+    (Use the same dataset (`dat`)). 
+    
+    Answer:  
+    
+    ```{r}
+lm(y ~ x1 - 1, data = dat)
+    ```
+
+    
+    B. Compare and contrast models with and without the intercept term using  
+       `modelr::sim1`.  Plot the predicted values for comaparison.  
+     
+    Answer:  
+    
+    ```{r}
+    with_intercept <- lm(y ~ x, data = modelr::sim1)
+    without_intercept <- lm(y ~ x - 1, data = modelr::sim1)
+    
+    grid_with <- modelr::sim1 %>%
+      data_grid(x) %>% 
+      add_predictions(with_intercept)
+    grid_without <- modelr::sim1 %>%
+      data_grid(x) %>% 
+      add_predictions(without_intercept)
+    
+    ggplot(modelr::sim1, aes(x)) +
+      geom_point(aes(y = y)) +
+      geom_line(aes(y = pred), data = grid_with, colour = 'red', size = 1) +
+      geom_line(aes(y = pred), data = grid_without, colour = 'blue', size = 1)
+    ```
+
+For continuous vaiables, the preicted values are a little different between models with and without intercept term.
+
+    C. Repeat part B using data `modelr::sim2`.
+    
+    Answer:  
+    
+    ```{r}
+    with_intercept <- lm(y ~ x, data = modelr::sim2)
+    without_intercept <- lm(y ~ x - 1, data = modelr::sim2)
+    
+    grid <- modelr::sim2 %>%
+      data_grid(x) %>% 
+      gather_predictions(with_intercept, without_intercept)
+    
+    ggplot(modelr::sim2, aes(x)) +
+      geom_point(aes(y = y)) +
+      geom_point(aes(y = pred), data = grid, colour = 'red', size = 4) +
+      facet_grid(~model)
+    ```
+
+For categorical variables, the predicted values are about the same for models with and without intercept term.
+
+# Exercise 4
+
+1.  Using the data `daily` given below, do the following.  
+    Create a new variable that splits the `wday` variable into terms, but only
+    for Saturdays, i.e. it should have `Thurs`, `Fri`, but `Sat-summer`, 
+    `Sat-spring`, `Sat-fall`. How does this model (`lm()` with `n` as the outcome) 
+    compare with the model with every combination of `wday` and `term`?
+    
+    ```{r}
+    term <- function(date) {
+      cut(date, breaks = lubridate::ymd(20130101, 20130605, 20130825, 20140101),
+          labels = c("spring", "summer", "fall"))
+      }
+    daily <- nycflights13::flights %>% 
+      mutate(date = lubridate::make_date(year, month, day)) %>% 
+      group_by(date) %>% 
+      summarise(n = n()) %>% 
+      mutate(wday = lubridate::wday(date, label = TRUE),
+             term = term(date))
+    ```
+    
+    Answer: 
+
+    ```{r}
+    daily <- daily %>%
+    mutate(wday2 = ifelse(wday == 'Sat', paste0(wday,"-",term), as.character(term)))
+    
+    fit1 <- lm(n ~ wday * term, data = daily)
+    fit2 <- lm(n ~ wday2, data = daily)
+
+    daily %>%
+  gather_residuals(fit1,fit2)%>%
+  ggplot(aes(date,resid,color = model))+
+  geom_line(alpha = 0.75)
+    ```
+
+Predictions of the two models are about the same.
+
+2.  Create a new `wday` variable that combines the day of week, term 
+    (for Saturdays), and public holidays. What do the residuals of 
+    that model look like?
+
+    Answer: 
+
+    ```{r}
+    library(timeDate)
+    
+    daily <- daily %>%
+      mutate(holiday = isHoliday(as.timeDate(date)),
+             wday3 = ifelse(holiday == TRUE, paste0('holiday','-',wday2), wday2))
+    
+    fit3 <- lm(n ~ wday3, data = daily)
+
+    daily %>%
+  gather_residuals(fit1,fit3)%>%
+  ggplot(aes(date,resid,color = model))+
+  geom_line(alpha = 0.75)
+    ```
+
+The residuals of the new model are very close to that of the original interaction model.
+
+3.  What happens if you fit a day of week effect that varies by month 
+    (i.e. `n ~ wday * month`)? Why is this not very helpful? 
+
+    Answer: 
+
+    ```{r}
+    library(lubridate)
+    daily <- daily %>% 
+      mutate(month = lubridate::month(date))
+    
+    fit4 <- lm(n ~ wday * month, data = daily)
+    
+    daily %>%
+  gather_residuals(fit1,fit4)%>%
+  ggplot(aes(date,resid,color = model))+
+  geom_line(alpha = 0.75)
+    ```
+
+The residuals seem to deviate from that of the original model. The new model is not very helpful because the interaction term is mostly insignificant in the model. The impact of wday on n does not depend on month.
+
+4.  What would you expect the model `n ~ wday + ns(date, 5)` to look like?
+    Knowing what you know about the data, why would you expect it to be
+    not particularly effective?
+
+    Answer: 
+
+    ```{r}
+    library(splines)
+    fit5 <- lm(n ~ wday + ns(date, 5), data = daily)
+    
+    daily %>%
+  gather_residuals(fit1,fit5)%>%
+  ggplot(aes(date,resid,color = model))+
+  geom_line(alpha = 0.75)
+    ```
+
+It will fit a smooth curve across the year. It is not very effective because splines normally give a more flexible model than other methods. The data contains many values, so it could fit a more precise model.
+
+5.  It's a little frustrating that Sunday and Saturday are on separate ends
+    of the plot. Write a small function to set the levels of the 
+    factor so that the week starts on Monday.
+
+    Answer: 
+
+    ```{r}
+    library(forcats)
+    relevel <- function(x) {
+      fct_relevel(x, levels(x)[-1])
+      }
+    levels(relevel(daily$wday))
+    ```
+
+
+# Exercise 5 `caret`
+
+1.  Using the `iris` dataset, find which machine learning algorithm gives
+    the best prediction accuracy for predicting `Species` among `knn`, 
+    `rf` (randomForest), and `nnet` (neuralnet).  
+    
+    Show a) how you partition the data (training and test sets), b) how you
+    train the models, and c) how you evaluate the models.  
+    
+    Fix the seed number within each chunk as needed for replication.  
+    You do not have to customize the tuning parameters (i.e. use the default set).  
+    Standardize the dataset before training using `preProcess()` or 
+    `train(..., preProcess = ...)`.  
+
+     
+    Answer: 
+
+    ```{r}
+    library(caret)
+    
+    ## a. partitioning data
+    set.seed(1)
+    index <- createDataPartition(iris$Species, p=0.75, list=FALSE)
+    tr <- iris[index,]
+    te <- iris[-index,]
+    
+    ## a. standardizing data
+    preProcValues <- preProcess(iris, method = c("knnImpute","center","scale"))
+    iris <- predict(preProcValues, iris)
+
+    ## b. Feature selection rfe = recursive feature elimination
+    set.seed(1)
+    RFE <- rfe(x = tr %>% select(-Species), 
+             y = tr$Species, 
+             rfeControl = rfeControl(functions = rfFuncs, method = "repeatedcv",
+                                     repeats = 3, verbose = FALSE))
+    x <- RFE$optVariables[1:4]
+    y <- "Species"
+  
+    # K-Nearest Neighbors
+    set.seed(1)
+    model.knn <- train(tr[, x], tr[, y], method = "knn")
+  
+    # Random forest
+    set.seed(1)
+    model.rf <- train(tr[, x], tr[, y], method = "rf")
+  
+    # Neural Network
+    set.seed(1)
+    model.nn <- train(tr[, x], tr[, y], method = "nnet")
+  
+    ## c. Prediction
+    pred_knn <- predict.train(object = model.knn, te[, x], type = "raw")
+    table(pred_knn)
+    confusionMatrix(pred_knn, te[, y])
+    
+    pred_rf <- predict.train(object = model.rf, te[, x], type = "raw")
+    table(pred_rf)
+    confusionMatrix(pred_rf, te[, y])
+    
+    pred_nn <- predict.train(object = model.nn, te[, x], type = "raw")
+    table(pred_nn)
+    confusionMatrix(pred_nn, te[, y])
+    ```
+            
+All 3 machine learning algorithm give the exact prediction accuracy for predicting `Species`.

@@ -1,0 +1,8 @@
+police-local.csv:
+	curl https://raw.githubusercontent.com/fivethirtyeight/data/master/police-locals/police-locals.csv -o police-locals.csv
+
+hw5_police_plot.png: police-local.csv hw5_police_plot.R
+	Rscript hw5_police_plot.R
+
+hw5_workflow.png: hw5_police_plot.png
+	make hw5_police_plot.png -Bnd | ./makefile2graph/make2graph | dot -Tpng -o hw5_workflow.png
