@@ -1,0 +1,150 @@
+---
+title: "Project 2"
+author: "Enying Gao"
+date: "`r format(Sys.time(), '%m/%d/%Y')`"
+output: html_document
+---
+
+```{r, include = F}
+library(tidyverse)
+library(stringr)
+```
+
+## Data: Ambient Air Quality
+
+The topic of this project is to understand the cause and effect of air pollution in the world. Air quality is often measured in terms of PM~2.5~ or PM~10~ (particles with aerodynamic diameter smaller than 2.5 or 10 micrometers). According to World Health Organization, the threshold of air pollution is annual mean concentration of 10 μg/m^3^ and 20 μg/m^3^ for PM~2.5~ and PM~10~. Poor air quality can lead to increased risks of pre-mature mortality from heart attack, stroke, respiratory infections, and lung cancer.
+
+### Read Data
+
+```{r}
+new_data <- read.csv("./newdata.csv")
+new_data1 <- read.csv("./newdata1.csv")
+new_data2 <- read.csv("./newdata2.csv")
+```
+
+All 4 datasets are derived from  WHO's Global Health Observatory data repository - Ambient air pollution. Table death contains information about ambient air pollution attributable deaths in 2016 by cause and country. Table sdpm25 includes the information about each country's average concentrations of PM~2.5~ in 2016. Table source_pm identifies the type and distribution of air pollution source_pms from year 1987 to 2014. Table air-quality contains information about annual mean concentration of PM~2.5~ in countries from year 2008 to 2017.
+
+### Figures
+
+```{r, warning=FALSE}
+# Percent of countries living in poor air quality in 2016
+new_data %>% 
+  filter(total_concentration > 10) %>% 
+  summarise(percentage = n()/nrow(new_data))
+```
+
+In 2016, about 92% of the countries in the world was exposed to PM~2.5~ in concentrations exceeding WHO air quality guidlines.
+
+```{r}
+# Top 4 countries with the largest number of deaths attributed to ambient air pollution in 2016
+new_data %>% 
+  filter(cause == "Total") %>% 
+  group_by(country, total_concentration) %>% 
+  summarise(total_death = sum(death)) %>% 
+  arrange(desc(total_death)) %>% 
+  head(n=4)
+
+# Top 4 countries with the highest concentration of PM2.5 in 2016
+new_data %>% 
+  select(country, total_concentration) %>% 
+  unique() %>% 
+  arrange(desc(total_concentration)) %>% 
+  head(n=4)
+```
+
+The top 4 countries with the largest number of deaths attributed to ambient air pollution in 2016 are China, India, Nigeria and Pakistan with value 1150296, 1087018, 140555, 121301 respectively.
+
+The top 4 countries with the highest concentration of PM~2.5~ in 2016 are Napal, Qatar, Egypt and Saudi Arabia with concentrations of PM~2.5~ of 94.3, 90.3, 79.3, 78.4 respectively.
+
+```{r, warning = FALSE}
+# Figure 1
+new_data %>% 
+  filter(cause == "Total") %>% 
+  group_by(country, cause, total_concentration) %>% 
+  summarise(total_death = sum(death)) %>% 
+  ggplot(aes(x=total_concentration, y=log(total_death))) +
+  geom_point(alpha = 0.5, size = 3, position = "jitter") +
+  geom_smooth(se = FALSE, size = 2) +
+  labs(title = expression(paste("Number of deaths increases as concentrations of PM"[2.5], " increase")),
+       x = expression(paste("Concentrations of fine particulate matter PM"[2.5], " (", mu, "g/m"^3, ") in 2016")),
+       y = "Log number of deaths attributed to \n ambient air pollution in 2016") +
+  geom_vline(xintercept = 10, linetype = "dashed", color = 'red') +
+  annotate('text', x = 10.2, y = 13, label = '10µg/m^3', color = 'red', hjust = 'left') +
+  annotate('text', x = 46, y = 13.2, label = "China", hjust = 'left', color = 'dark green') +
+  annotate('text', x = 62.5, y = 13.2, label = "India", hjust = 'left', color = 'dark green') +
+  annotate('text', x = 91.5, y = 9.5, label = "Nepal", hjust = 'left', color = 'orange') +
+  annotate('text', x = 87.5, y = 5.2, label = "Qatar", hjust = 'left', color = 'orange') +
+  annotate('text', x = 28, y = 3.7, label = "92% of the population in 2016 was exposed to particulate matter \n in concentrations exceeding the WHO air quality guidelines", hjust = 'left', color = 'purple')
+```
+
+The y-axis is transformed into log scale, so we can get an overall picture of the data. The vertical line represents the cutoff value of 10µg/m^3^. From the scatter plot, we can notice that there's a small positive relationship between number of deaths attributed to ambient air pollution and concentrations of PM~2.5~. As a result, the number of deaths is expected to increase as concentrations of PM~2.5~ increase.
+
+```{r, warning=FALSE}
+# Figure 2  
+new_data %>% 
+  filter(cause != "Total") %>% 
+  ggplot(., aes(x = reorder(cause, death, FUN = mean), y = death, color = sex)) +
+  geom_boxplot() +
+  coord_flip() +
+  ylim(c(0,7500)) +
+  labs(title = 'Cause of death has same effect on sex',
+       y = 'Number of deaths attributed to ambient air pollution in 2016',
+       x = "Cause of ambient air pollution attributable deaths")
+```
+
+The boxplot shows that the mortality rate was about the same among cause of ambient air pollution arributable deaths in 2016. Ischaemic heart disease led to slightly more deaths than other diseases. In terms of sex, females and males are equally likely to get diseases.
+
+```{r}
+# Average percent contribution of source_pm category to particulate matter (PM2.5)
+average_source_pm <- vector("double", ncol(new_data2[2:7]))
+names(average_source_pm) <- names(new_data2[2:7])
+for (i in seq_along(new_data2[2:7])) {
+  average_source_pm[[i]] <- mean(new_data2[[i+1]], na.rm = T)
+}
+average_source_pm
+```
+
+Since 1987 to 2014, the highest average percent contribution of source_pm category to PM~2.5~ belongs to category "other unspecified human origin", following by traffic and biomass burn residual. It is interesting to learn that traffic and emission from industrial activities aren't the largest source_pms of air pollution. About 36% of the source_pm of air pollution is still unknown. More studies need to be done to identify the source_pms.
+
+```{r, warning = FALSE, fig.width = 8}
+# Figure 3
+  new_data1 %>% 
+    group_by(Region, Year) %>% 
+    summarise(average_pm2.5 = mean(pm2.5, na.rm = T)) %>% 
+    ggplot() +
+    geom_line(aes(x = Year, y = average_pm2.5), alpha = 0.5, size = 1) +
+    geom_hline(yintercept = 10, linetype = "dashed", color = 'red') +
+    annotate('text', x = 2010, y = 20, label = '10µg/m^3', color = 'red', hjust = 'left') +
+    facet_wrap(~Region) +
+    labs(title = 'Low to medium income countries have worse air quality than high income countries',
+       x = 'Year',
+       y = expression(paste("Average concentrations of fine particulate matter PM"[2.5]))) +
+    theme_bw()
+```
+
+LMIC stands for low to medium income country. HIC stands for high income country.
+
+The line chart implies that in general countries with high income have lower average concentrations of PM~2.5~ than those with low to medium income. Western Pacific countries with high income have the best air quality overall. It is strange though that Eastern Mediterranean countries with high income have very high concentrations of particulate matter. Further researches need to be performed to understand the cause of this abnormality.
+
+```{r, warning = FALSE}
+# Figure 4
+  new_data2 %>% 
+    gather(source_pm, percentage, 2:7) %>% 
+    group_by(Year, source_pm) %>% 
+    summarise(average_percentage = mean(percentage, na.rm = T)) %>% 
+    filter(is.finite(average_percentage)) %>% 
+    ggplot() +
+    geom_line(aes(x = Year, y = average_percentage,color = source_pm), alpha = 0.5, size = 1) +
+    facet_wrap(~source_pm) +
+    theme_bw() +
+    theme(legend.position = 'top') +
+    labs(title = 'Future goal is to identify unspecified source_pms of human origin',
+       x = 'Year',
+       y = 'Percentage')
+```
+
+Though there's a lot of up and downs in the figure, the distribution of air pollution source_pm is about the same. 'Other unspecified human origin' has always been the leading source_pm of concentration of particulate matters.
+
+### Conclusion
+
+Only about 8% of countries can be considered to have clean air. Majority of the people exposes to different levels of air pollution everyday. People living in low to medium income countries should pay more attention to air quality, as they have higher chance of exposing to ambient air pollution arributable diseases than those living in high income countries. In order to reduce health impacts from air pollution, it is important to identify source_pms of air pollution that are still unknown.
